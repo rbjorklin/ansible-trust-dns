@@ -1,0 +1,12 @@
+$TTL {{ item['ttl'] }}
+@   IN          SOA     {{ item['domain'] if item['domain'].endswith('.') else item['domain'] + '.' }} {{ item['rname'] if item['rname'].endswith('.') else item['rname'] + '.' }} (
+  {{ item['serial'] }}
+  {{ item['refresh'] }}
+  {{ item['retry'] }}
+  {{ item['expire'] }}
+  {{ item['minimum'] }}
+)
+
+{% for record in item['records'] %}
+{{ record.get('name', '') }} {{ record.get('ttl', '') }} {{ record['type'] }} {{ record['data'] }}
+{% endfor %}

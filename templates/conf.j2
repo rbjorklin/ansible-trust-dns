@@ -1,0 +1,15 @@
+{% for key, value in trust_merged_config | dictsort() if key != 'zones' %}
+{% if key == 'directory' %}
+{{ key }} = "{{ value }}"
+{% else %}
+{{ key }} = {{ value }}
+{% endif %}
+{% endfor %}
+
+{% for zone in trust_merged_config.get('zones', []) %}
+[[zones]]
+{% for key, value in zone | dictsort() if key in ['zone', 'zone_type', 'file'] %}
+{{ key }} = "{{ value }}"
+{% endfor %}
+
+{% endfor %}

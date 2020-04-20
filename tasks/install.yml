@@ -1,0 +1,69 @@
+---
+# vim: set softtabstop=2 tabstop=2 shiftwidth=2 expandtab autoindent smartindent syntax=yaml:
+
+- name: Check Trust package file existence
+  stat:
+    path: "{{ role_path }}/files/{{ trust_pkg }}"
+  become: false
+  register: trust_package
+  delegate_to: 127.0.0.1
+
+- name: Download Trust
+  get_url:
+    url: "{{ trust_url }}"
+    dest: "{{ role_path }}/files/{{ trust_pkg }}"
+    timeout: "42"
+  become: false
+  tags: installation
+  delegate_to: 127.0.0.1
+  when: not trust_package.stat.exists
+
+#- name: Create Temporary Directory for Extraction
+#  tempfile:
+#    state: directory
+#    prefix: ansible-trust.
+#  become: false
+#  register: install_temp
+#  tags: installation
+#  delegate_to: 127.0.0.1
+
+- name: Unarchive Trust
+  unarchive:
+    src: "{{ role_path }}/files/{{ trust_pkg }}"
+    dest: "{{ role_path }}/files/"
+    creates: "{{ role_path }}/files/trust-dns-{{ trust_version }}/README.md"
+    #dest: "{{ install_temp.path }}/"
+    #creates: "{{ install_temp.path }}/README.md"
+    #extra_opts:
+    #  - "--strip-components=1"
+  become: false
+  tags: installation
+  delegate_to: 127.0.0.1
+
+- name: Build Trust
+  command: cargo build --release -p trust-dns
+  args:
+    chdir: "{{ role_path }}/files/trust-dns-{{ trust_version }}"
+    creates: "{{ role_path }}/files/trust-dns-{{ trust_version }}/target/release/named"
+    #chdir: "{{ install_temp.path }}"
+    #creates: "{{ install_temp.path }}/target/release/named"
+  become: false
+  tags: installation
+  delegate_to: 127.0.0.1
+
+- name: Install Trust
+  copy:
+    src: "{{ install_temp.path }}/target/release/named"
+    dest: "{{ trust_bin_dir }}/named"
+    owner: "root"
+    group: "root"
+    mode: 0755
+  tags: installation
+
+#- name: Cleanup
+#  file:
+#    path: "{{ install_temp.path }}"
+#    state: "absent"
+#  become: false
+#  tags: installation
+#  delegate_to: 127.0.0.1

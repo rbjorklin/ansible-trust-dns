@@ -1,0 +1,18 @@
+---
+# vim: set softtabstop=2 tabstop=2 shiftwidth=2 expandtab autoindent smartindent syntax=yaml:
+
+- name: "Merge default and user config"
+  set_fact:
+    trust_merged_config: "{{ trust_default_config | combine((trust_config | default({})), recursive=True) }}"
+
+#- name: Include install
+#  import_tasks: install.yml
+
+- name: Include install
+  import_tasks: remote-install.yml
+
+- debug:
+    var: trust_merged_config
+
+- name: Configure
+  import_tasks: configure.yml

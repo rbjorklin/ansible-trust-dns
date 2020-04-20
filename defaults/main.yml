@@ -1,0 +1,87 @@
+---
+# vim: set softtabstop=2 tabstop=2 shiftwidth=2 expandtab autoindent smartindent syntax=yaml:
+
+trust_version: "0.19.3"
+trust_pkg: "{{ trust_version }}.tar.gz"
+trust_url: "https://github.com/bluejekyll/trust-dns/archive/{{ trust_pkg }}"
+
+trust_bin_dir: "/usr/local/bin"
+
+trust_user: "root"
+trust_group: "root"
+trust_serial: "{{ lookup('pipe','date +%s') }}"
+trust_config_file: "/etc/named.toml"
+
+trust_anchored_default_zone: &default_zone_config
+  - domain: "internal.rbjorklin.com."
+    rname: "root.internal.rbjorklin.com."
+    ttl: "5m"
+    serial: "{{ trust_serial }}"
+    refresh: 3600
+    retry: 1800
+    expire: 86400
+    minimum: 86400
+    records:
+      - type: "NS"
+        data: "internal.rbjorklin.com."
+
+trust_default_config:
+  listen_addrs_ipv4: '["0.0.0.0"]'
+  #listen_addrs_ipv6: '["::0"]'
+  listen_port: 53
+  directory: "/var/named"
+  zones:
+    - <<: *default_zone_config
+      zone: "internal.rbjorklin.com"
+      zone_type: "Master"
+      file: "internal.rbjorklin.com.zone"
+      records:
+        - type: "A"
+          name: "nbg11"
+          data: "10.0.1.3"
+        - type: "A"
+          name: "nbg12"
+          data: "10.0.1.1"
+        - type: "A"
+          name: "nbg13"
+          data: "10.0.1.2"
+    - <<: *default_zone_config
+      zone: "localhost"
+      zone_type: "Master"
+      file: "localhost.zone"
+      records:
+        - type: "NS"
+          data: "internal.rbjorklin.com."
+        - type: "A"
+          name: "localhost."
+          data: "10.0.1.3"
+        - type: "AAAA"
+          data: "::1"
+    - <<: *default_zone_config
+      zone: "0.0.127.in-addr.arpa"
+      zone_type: "Master"
+      file: "127.0.0.1.zone"
+      records:
+        - type: "NS"
+          data: "internal.rbjorklin.com."
+        - type: "PTR"
+          name: "1"
+          data: "localhost."
+    - <<: *default_zone_config
+      zone: "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa"
+      zone_type: "Master"
+      file: "ipv6_1.zone"
+      records:
+        - type: "NS"
+          data: "internal.rbjorklin.com."
+        - type: "PTR"
+          name: "1"
+          data: "localhost."
+    - <<: *default_zone_config
+      zone: "255.in-addr.arpa"
+      zone_type: "Master"
+      file: "255.zone"
+    - <<: *default_zone_config
+      zone: "0.in-addr.arpa"
+      zone_type: "Master"
+      file: "0.zone"

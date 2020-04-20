@@ -1,0 +1,31 @@
+---
+# vim: set softtabstop=2 tabstop=2 shiftwidth=2 expandtab autoindent smartindent syntax=yaml:
+
+- name: "Template config file to {{ trust_config_file }}"
+  template:
+    src: "templates/conf.j2"
+    dest: "{{ trust_config_file }}"
+    owner: "{{ trust_user }}"
+    group: "{{ trust_group }}"
+    mode: '0644'
+
+# Ansible seems broken and lies about creating directories so work around?
+- name: "mkdir {{ trust_merged_config['directory'] }}"
+  command: "mkdir -p {{ trust_merged_config['directory'] }}"
+
+- name: "Create {{ trust_merged_config['directory'] }}"
+  file:
+    path: "Create {{ trust_merged_config['directory'] }}"
+    state: directory
+    owner: "{{ trust_user }}"
+    group: "{{ trust_group }}"
+    mode: '0755'
+
+- name: "Template zones to {{ trust_merged_config['directory'] }}"
+  template:
+    src: "templates/zone.j2"
+    dest: "{{ trust_merged_config['directory'] }}/{{ item.file }}"
+    owner: "{{ trust_user }}"
+    group: "{{ trust_group }}"
+    mode: '0644'
+  loop: "{{ trust_merged_config['zones'] }}"

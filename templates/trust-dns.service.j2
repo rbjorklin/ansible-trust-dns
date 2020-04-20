@@ -1,0 +1,19 @@
+[Unit]
+Description=Trust DNS
+Documentation=https://github.com/bluejekyll/trust-dns
+After=network-online.target
+
+[Service]
+User={{ trust_user }}
+Group={{ trust_group }}
+ExecStart={{ trust_bin_dir }}/named --config={{ trust_config_file }}
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+KillSignal=SIGTERM
+Restart=on-failure
+RestartSec=5s
+StartLimitBurst=3
+StartLimitInterval=15
+
+[Install]
+WantedBy=multi-user.target

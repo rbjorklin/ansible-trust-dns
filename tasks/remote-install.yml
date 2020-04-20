@@ -1,0 +1,95 @@
+---
+# vim: set softtabstop=2 tabstop=2 shiftwidth=2 expandtab autoindent smartindent syntax=yaml:
+
+- name: install deps
+  package:
+    name: gcc
+    state: present
+
+- name: Install latest Rust
+  shell: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
+  args:
+    warn: false
+
+- name: Check Trust package file existence
+  stat:
+    path: "/tmp/{{ trust_pkg }}"
+  #become: false
+  register: trust_package
+
+- name: Download Trust
+  get_url:
+    url: "{{ trust_url }}"
+    dest: "/tmp/{{ trust_pkg }}"
+    timeout: "42"
+  become: false
+  tags: installation
+  when: not trust_package.stat.exists
+
+#- name: Create Temporary Directory for Extraction
+#  tempfile:
+#    state: directory
+#    prefix: ansible-trust.
+#  become: false
+#  register: install_temp
+#  tags: installation
+#  delegate_to: 127.0.0.1
+
+- name: Unarchive Trust
+  unarchive:
+    remote_src: true
+    src: "/tmp/{{ trust_pkg }}"
+    dest: "/tmp"
+    creates: "/tmp/trust-dns-{{ trust_version }}/README.md"
+    #dest: "{{ install_temp.path }}/"
+    #creates: "{{ install_temp.path }}/README.md"
+    #extra_opts:
+    #  - "--strip-components=1"
+  #become: false
+  tags: installation
+  #delegate_to: 127.0.0.1
+
+- name: Build Trust
+  shell: /root/.cargo/bin/cargo build --release -p trust-dns
+  args:
+    executable: /bin/bash
+    chdir: "/tmp/trust-dns-{{ trust_version }}"
+    creates: "/tmp/trust-dns-{{ trust_version }}/target/release/named"
+    #chdir: "{{ install_temp.path }}"
+    #creates: "{{ install_temp.path }}/target/release/named"
+  #become: false
+  tags: installation
+  #delegate_to: 127.0.0.1
+
+- name: Install Trust
+  copy:
+    remote_src: true
+    src: "/tmp/trust-dns-{{ trust_version }}/target/release/named"
+    dest: "{{ trust_bin_dir }}/named"
+    owner: "root"
+    group: "root"
+    mode: 0755
+  tags: installation
+
+#- name: Cleanup
+#  file:
+#    path: "{{ install_temp.path }}"
+#    state: "absent"
+#  become: false
+#  tags: installation
+#  delegate_to: 127.0.0.1
+
+- name: "Service config file"
+  template:
+    src: "templates/trust-dns.service.j2"
+    dest: "/etc/systemd/system/trust-dns.service"
+    owner: "{{ trust_user }}"
+    group: "{{ trust_group }}"
+    mode: '0644'
+
+- name: "Enable service"
+  systemd:
+    name: trust-dns
+    daemon_reload: true
+    enabled: true
+  notify: restart trust-dns
