@@ -7,6 +7,7 @@ After=network-online.target
 User={{ trust_user }}
 Group={{ trust_group }}
 ExecStart={{ trust_bin_dir }}/named --config={{ trust_config_file }}
+# https://github.com/bluejekyll/trust-dns/issues/20
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 KillSignal=SIGTERM
